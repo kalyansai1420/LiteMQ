@@ -1,4 +1,4 @@
-package main.java.com.litemq.log;
+package com.litemq.log;
 
 import java.io.BufferedWriter;
 import java.io.File;

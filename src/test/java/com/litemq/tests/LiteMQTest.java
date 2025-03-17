@@ -1,8 +1,8 @@
-package test.java.com.litemq.tests;
+package com.litemq.tests;
 
-import main.java.com.litemq.core.LiteMQ;
-import main.java.com.litemq.core.Producer;
-import main.java.com.litemq.core.Consumer;
+import com.litemq.core.LiteMQ;
+import com.litemq.core.Producer;
+import com.litemq.core.Consumer;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;

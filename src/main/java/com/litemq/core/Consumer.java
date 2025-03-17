@@ -1,8 +1,8 @@
-package main.java.com.litemq.core;
+package com.litemq.core;
 
 import java.io.IOException;
 
-import main.java.com.litemq.log.LogReader;
+import com.litemq.log.LogReader;
 
 public class Consumer {
     private final LogReader logReader;

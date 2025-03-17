@@ -1,7 +1,7 @@
-package main.java.com.litemq.core;
+package com.litemq.core;
 
-import main.java.com.litemq.log.LogWriter;
-import main.java.com.litemq.log.LogReader;
+import com.litemq.log.LogWriter;
+import com.litemq.log.LogReader;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

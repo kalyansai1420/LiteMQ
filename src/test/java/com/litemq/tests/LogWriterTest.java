@@ -1,4 +1,4 @@
-package test.java.com.litemq.tests;
+package com.litemq.tests;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
-import main.java.com.litemq.log.LogWriter;
+import com.litemq.log.LogWriter;
 
 public class LogWriterTest {
     private static final String TEST_LOG_DIR = "logs/test/";

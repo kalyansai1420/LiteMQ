@@ -1,8 +1,8 @@
-package main.java.com.litemq.core;
+package com.litemq.core;
 
 import java.io.IOException;
 
-import main.java.com.litemq.log.LogWriter;
+import com.litemq.log.LogWriter;
 
 public class Producer {
 
