@@ -39,6 +39,9 @@ public class LogWriter {
     }
 
     public synchronized void writeMessage(String topic ,String payload) throws IOException {
+        if (writer == null) {
+            throw new IOException("LogWriter is closed!");
+        }
         if (logFile.length() >= maxLogFileSize) {
             rotateLogFile();
         }
