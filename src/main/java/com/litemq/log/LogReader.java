@@ -1,51 +1,57 @@
 package com.litemq.log;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 public class LogReader {
-    private final String logFilePath;
-    private BufferedReader reader;
+    private FileChannel fileChannel;
+    private ByteBuffer buffer;
+    private static final int BUFFER_SIZE = 8192;
 
-    public LogReader(String logFilePath) throws IOException {
-        this.logFilePath = logFilePath;
-        openFile();
+    public LogReader(String logDir, String topic) throws IOException {
+        File logFile = getLatestLogFile(logDir);
+        if (logFile == null) {
+            throw new FileNotFoundException("No log files found for topic: " + topic);
+        }
+        fileChannel = FileChannel.open(logFile.toPath(), StandardOpenOption.READ);
+        buffer = ByteBuffer.allocate(BUFFER_SIZE);
     }
 
-    private void openFile() throws IOException {
-        File logDirFile = new File(logFilePath);
-        File[] logFiles = logDirFile.listFiles((dir, name) -> name.startsWith("log-") && name.endsWith(".txt"));
-
+    private File getLatestLogFile(String logDir) {
+        File directory = new File(logDir);
+        File[] logFiles = directory.listFiles((dir, name) -> name.startsWith("log-") && name.endsWith(".log"));
+        
         if (logFiles == null || logFiles.length == 0) {
-            throw new FileNotFoundException("No log files found in directory: " + logFilePath);
+            return null;
         }
 
-        // Select the most recent log file
-        Arrays.sort(logFiles, Comparator.comparingLong(File::lastModified));
-        String currentLogFile = logFiles[logFiles.length - 1].getAbsolutePath(); // Pick latest log file
-
-        System.out.println("Opening log file: " + currentLogFile);
-        reader = new BufferedReader(new FileReader(currentLogFile));
+        // Sort log files by timestamp (latest first)
+        Arrays.sort(logFiles, Comparator.comparingLong(File::lastModified).reversed());
+        return logFiles[0]; // Pick the latest log file
     }
 
     public String readNextMessage() throws IOException {
-        String message = reader.readLine();
-        if (message == null) {
-            close();
+        if (fileChannel.read(buffer) == -1) {
+            return null; // No more messages
         }
-        return message;
+        buffer.flip();
+        byte[] data = new byte[buffer.remaining()];
+        buffer.get(data);
+        buffer.clear();
+        return new String(data);
     }
 
     public void close() throws IOException {
-        if (reader != null) {
-            reader.close();
+        if (fileChannel != null) {
+            fileChannel.close();
         }
     }
 }

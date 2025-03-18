@@ -1,25 +1,22 @@
 package com.litemq.core;
 
+import com.litemq.log.LogReader;
 import java.io.IOException;
 
-import com.litemq.log.LogReader;
-
 public class Consumer {
-    private final LogReader logReader;
+    private final String topic;
+    private LogReader logReader;
 
-    public Consumer(LogReader logReader) {
-        this.logReader = logReader;
+    public Consumer(String topic) throws IOException {
+        this.topic = topic;
+        this.logReader = new LogReader("logs", topic);
     }
 
-    public synchronized String consumeMessage() throws IOException {
-        String message = logReader.readNextMessage();
-        if( message != null) {
-            acknowledgeMessage();
-        }
-        return message;
+    public String consumeMessage() throws IOException {
+        return logReader.readNextMessage();
     }
 
-    private void acknowledgeMessage() {
-        System.out.println("Message acknowledge");
+    public void close() throws IOException {
+        logReader.close();
     }
 }
