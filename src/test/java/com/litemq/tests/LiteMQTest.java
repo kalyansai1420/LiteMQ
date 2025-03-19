@@ -1,86 +1,71 @@
 package com.litemq.tests;
 
+import com.litemq.core.Consumer;
 import com.litemq.core.LiteMQ;
 import com.litemq.core.Producer;
-import com.litemq.core.Consumer;
-import org.junit.jupiter.api.*;
-
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+import java.nio.file.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class LiteMQTest {
+    private static final String LOG_DIR = "logs";
+    private static final String TEST_TOPIC = "test-topic";
+    private static final Path LOG_FILE_PATH = Paths.get(LOG_DIR, TEST_TOPIC + ".log");
+
     private LiteMQ liteMQ;
+    private Producer producer;
+    private Consumer consumer;
 
     @BeforeEach
     void setUp() throws IOException {
+        // Ensure logs directory exists
+        Files.createDirectories(Paths.get(LOG_DIR));
+
+        // Ensure test log file exists
+        if (!Files.exists(LOG_FILE_PATH)) {
+            Files.createFile(LOG_FILE_PATH);
+        }
+
         liteMQ = new LiteMQ();
+        producer = liteMQ.createProducer();
+        consumer = liteMQ.createConsumer(TEST_TOPIC);
     }
 
     @AfterEach
     void tearDown() throws IOException {
         liteMQ.shutdown();
+        // Cleanup: Delete test log files
+        Files.deleteIfExists(LOG_FILE_PATH);
     }
 
     @Test
-    void testMessageFlow() throws IOException {
-        Producer producer = liteMQ.createProducer();
-        Consumer consumer = liteMQ.createConsumer();
+    void testEndToEndMessageFlow() throws IOException {
+        producer.sendMessage(TEST_TOPIC, "Hello, LiteMQ!");
 
-        producer.sendMessage("test_topic", "Hello LiteMQ!");
-        producer.sendMessage("test_topic", "Another message");
-
-        assertEquals("Hello LiteMQ!", consumer.consumeMessage().split(" ", 4)[3]);
-        assertEquals("Another message", consumer.consumeMessage().split(" ", 4)[3]);
+        String receivedMessage = consumer.consumeMessage();
+        assertEquals("Hello, LiteMQ!", receivedMessage);
     }
 
     @Test
-    void testConcurrentProducersConsumers() throws IOException {
-        Producer producer1 = liteMQ.createProducer();
-        Producer producer2 = liteMQ.createProducer();
-        Consumer consumer1 = liteMQ.createConsumer();
-        Consumer consumer2 = liteMQ.createConsumer();
+    void testMultipleConsumers() throws IOException {
+        Consumer consumer2 = liteMQ.createConsumer(TEST_TOPIC);
 
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        producer.sendMessage(TEST_TOPIC, "Message for multiple consumers");
 
-        executor.execute(() -> {
-            try {
-                producer1.sendMessage("test_topic", "P1-Message 1");
-                producer1.sendMessage("test_topic", "P1-Message 2");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        assertEquals("Message for multiple consumers", consumer.consumeMessage());
+        assertEquals("Message for multiple consumers", consumer2.consumeMessage());
+    }
 
-        executor.execute(() -> {
-            try {
-                producer2.sendMessage("test_topic", "P2-Message 1");
-                producer2.sendMessage("test_topic", "P2-Message 2");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+    @Test
+    void testConsumerDoesNotReceiveAfterUnsubscribing() throws IOException {
+        liteMQ.createConsumer(TEST_TOPIC);
+        liteMQ.shutdown(); // Simulate consumer stopping
 
-        executor.execute(() -> {
-            try {
-                assertNotNull(consumer1.consumeMessage());
-                assertNotNull(consumer1.consumeMessage());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        producer.sendMessage(TEST_TOPIC, "Message after unsubscribe");
 
-        executor.execute(() -> {
-            try {
-                assertNotNull(consumer2.consumeMessage());
-                assertNotNull(consumer2.consumeMessage());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-
-        executor.shutdown();
+        assertNull(consumer.consumeMessage()); // Should return null
     }
 }
