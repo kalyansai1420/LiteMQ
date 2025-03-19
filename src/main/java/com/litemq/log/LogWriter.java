@@ -12,7 +12,7 @@ public class LogWriter {
     private static final String LOG_DIR = "logs";
     private static final long MAX_LOG_FILE_SIZE = 10L * 1024 * 1024; // 10MB
     private static final int BUFFER_SIZE = 8192;
-    private static final int FORCE_EVERY_N_WRITES = 10; // Force flush every 10 writes
+    private static final int FORCE_EVERY_N_WRITES = 5; // 🔥 Reduce flush interval for safety
 
     private final String logDir;
     private final long maxLogFileSize;
@@ -39,7 +39,7 @@ public class LogWriter {
         }
 
         this.buffer = ByteBuffer.allocate(BUFFER_SIZE);
-        rotateLogFile();
+        rotateLogFile(); // 🔥 Ensure a log file is created
     }
 
     private void rotateLogFile() throws IOException {
@@ -53,6 +53,16 @@ public class LogWriter {
         }
 
         logFile = new File(logDir, "log-" + System.currentTimeMillis() + ".log");
+
+        if (!logFile.exists()) {
+            boolean created = logFile.createNewFile(); // 🔥 Ensure the file exists
+            if (created) {
+                System.out.println("[LogWriter] Created new log file: " + logFile.getAbsolutePath());
+            } else {
+                System.err.println("[LogWriter] Failed to create log file!");
+            }
+        }
+
         fileChannel = new FileOutputStream(logFile, true).getChannel();
     }
 
@@ -70,11 +80,8 @@ public class LogWriter {
 
         buffer.put(data);
         System.out.println("[LogWriter] Message written to buffer: " + logEntry);
-        writeCount++;
-        if (writeCount >= FORCE_EVERY_N_WRITES) {
-            flushBuffer();
-            writeCount = 0;
-        }
+        
+        flushBuffer(); // 🔥 Immediately flush after every write
     }
 
     public void flushBuffer() throws IOException {
@@ -86,7 +93,7 @@ public class LogWriter {
         while (buffer.hasRemaining()) {
             fileChannel.write(buffer);
         }
-        fileChannel.force(true); // Ensure disk write
+        fileChannel.force(true); // 🔥 Ensure write to disk
         buffer.clear();
     }
 
